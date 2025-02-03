@@ -742,8 +742,8 @@ if __name__ == "__main__":
     #               'tp-link', 'hp', 'huawei']
     # for brand in tqdm(brand_list, desc='processing brand list....\n'):
     #     print(brand)
-    #     ert_folder = 'cluster_source/model_ert_list_cluster_new_0506/'
-    #     lmt_path = f'final_match_sample/yangben_for_model_match_0909/{brand}'
+    #     ert_folder = 'cluster_source/ERT_data_test/'
+    #     lmt_path = f'final_match_sample/test_data/{brand}'
     #     if brand in ['cisco']:
     #         lmt_path = f'sample_for_url_analysis/{brand}'
     #     result_path = f'url_analysis/all_url_match_case_{brand}'
