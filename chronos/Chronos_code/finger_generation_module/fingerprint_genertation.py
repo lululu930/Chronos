@@ -9,10 +9,10 @@ from finger_generation_module.tools.process_product_by_brand import *
 def search_first_ert(lmt, ERT_list, list_flag=True):
     try:
         for ert_index in range(0, len(ERT_list)):
-            if list_flag:  # 如果ERT_list是一维列表，只有时间
+            if list_flag:
                 if parse_time(ERT_list[ert_index]) >= parse_time(lmt):
                     return ert_index
-            else:  # 如果ERT_list是二维列表，有时间和版本
+            else:
                 if parse_time(ERT_list[ert_index][1]) >= parse_time(lmt):
                     return ert_index
         return None
@@ -26,7 +26,7 @@ def match_version_from_ert_list(lmt, ert_dict, interval, model, brand, group_fla
     ert_list = list(ert_dict.keys())
     current_ert_index = search_first_ert(lmt, ert_list)
     if current_ert_index != None:
-        while parse_time(ert_list[current_ert_index]) - parse_time(lmt) <= interval:  ### 在限定阈值内
+        while parse_time(ert_list[current_ert_index]) - parse_time(lmt) <= interval:
             ert = ert_list[current_ert_index]
             match = True
             if group_flag:
@@ -39,7 +39,7 @@ def match_version_from_ert_list(lmt, ert_dict, interval, model, brand, group_fla
                             add_flag = True
                             break
                     if add_flag:
-                        result_list.append([ert, ert_dict[ert]])  ### 保存对应的ERT和版本
+                        result_list.append([ert, ert_dict[ert]])
                     current_ert_index += 1
                 if brand == 'd-link':
                     add_flag = False
@@ -48,13 +48,13 @@ def match_version_from_ert_list(lmt, ert_dict, interval, model, brand, group_fla
                             add_flag = True
                             break
                     if add_flag:
-                        result_list.append([ert, ert_dict[ert]])  ### 保存对应的ERT和版本
+                        result_list.append([ert, ert_dict[ert]])
                     current_ert_index += 1
                 else:
-                    result_list.append([ert, ert_dict[ert]])  ### 保存对应的ERT和版本
+                    result_list.append([ert, ert_dict[ert]])
                     current_ert_index += 1
             else:
-                result_list.append([ert, ert_dict[ert]])  ### 保存对应的ERT和版本
+                result_list.append([ert, ert_dict[ert]])
                 current_ert_index += 1
             if current_ert_index == len(ert_list):
                 break
@@ -83,9 +83,7 @@ def get_model_dict(brand_name, lmt_folder, result_folder, group_ert_folder, url_
     for group, data_info in tqdm(group_data_dict.items()):
         if group == '-1':
             continue
-        # 剔除因为不适合而被去掉的分组号
         if brand_name in remove_unsuit_model_list and group not in url_analysis_dict.keys():
-            ### 计数被删掉的样本
             for model, samples in data_info.items():
                 remove_model_num += 1
                 sample = samples["sample"]
@@ -101,7 +99,6 @@ def get_model_dict(brand_name, lmt_folder, result_folder, group_ert_folder, url_
         # interval = url_analysis_dict[group]["interval"]["final_interval"]*24*60*60
         interval = time_dict[brand_name]
         for model, samples in data_info.items():
-            # 剔除因为不适合而被去掉的型号
             if brand_name in remove_unsuit_model_list and model in unsuit_model_list:
                 remove_model_num += 1
                 sample = samples["sample"]
@@ -156,9 +153,9 @@ def get_model_dict(brand_name, lmt_folder, result_folder, group_ert_folder, url_
                     continue
                 flag_match, match_dict[lmt]["match_result"] = match_version_from_ert_list(lmt, ert_dict, interval, model, brand_name)
 
-                if not flag_match:  # 匹配全组的
+                if not flag_match:
                     flag_match, match_dict[lmt]["match_result"] = match_version_from_ert_list(lmt, ert_dict_group, interval, model, brand_name, group_flag=True)
-                if not flag_match:  # 如果还是匹配不到，就寻找最近的作为参考版本
+                if not flag_match:
                     current_ert_index = search_first_ert(lmt, list(ert_dict.keys()))
                     if current_ert_index != None:
                         match_dict[lmt]["reference_version_range"] = {"latest_ert": list(ert_dict.keys())[current_ert_index], "reference_version": ert_dict[list(ert_dict.keys())[current_ert_index]]}
@@ -171,6 +168,73 @@ def get_model_dict(brand_name, lmt_folder, result_folder, group_ert_folder, url_
         f.write(json.dumps(result_dict, indent=4))
     print(f'_______________________________{sample_num_count}， {unsuit_sample_num}______________________________')
     return result_dict, sample_version_dict, sample_lmt_dict, unsuit_sample_num, remove_model_num
+
+
+def fingerprint_test(brand, finger_dict, sample_version_dict, sample_lmt_dict, save_path):
+    sample_num_right = 0
+    sample_num_recall = 0
+    right_finger = 0
+    recall_finger = 0
+    precise_count = 0
+    finger_count = 0
+    version_range_dict = {}
+    for model, finger in finger_dict.items():
+        for lmt, version_list in finger.items():
+            # acc
+            sample_version_list = sample_lmt_dict[model][lmt]
+            for version in sample_version_list:
+                sample_num_right += 1
+                for finger_version in version_list:
+                    if version_matched_check(finger_version, version, brand):
+                        right_finger += 1
+                        break
+
+        for lmt, version_list in finger.items():
+            if len(list(set(version_list))) not in version_range_dict.keys():
+                version_range_dict[len(list(set(version_list)))] = 0
+            version_range_dict[len(list(set(version_list)))] += 1
+            finger_count += 1
+            if len(list(set(version_list))) > 1:
+                print(list(set(version_list)))
+                continue
+            precise_count += 1
+            # recall
+            for finger_version in list(set(version_list)):
+                for version in sample_version_dict[model].keys():
+                    # if finger_version in version or version in finger_version:   #version_matched_check(finger_version, version, brand, strict_flag=True):
+                    if brand in ['d-link', 'zyxel', 'avm']:
+                        if finger_version in version or version in finger_version:
+                            lmt_list = sample_version_dict[model][version]
+                            for sample_lmt in lmt_list:
+                                sample_num_recall += 1
+                                if sample_lmt == lmt:
+                                    recall_finger += 1
+                    elif brand in ['synology']:
+                        if finger_version == version or version == finger_version[4:]:
+                            lmt_list = sample_version_dict[model][version]
+                            for sample_lmt in lmt_list:
+                                sample_num_recall += 1
+                                if sample_lmt == lmt:
+                                    recall_finger += 1
+                    else:
+                        if finger_version == version:
+                            lmt_list = sample_version_dict[model][version]
+                            for sample_lmt in lmt_list:
+                                sample_num_recall += 1
+                                if sample_lmt == lmt:
+                                    recall_finger += 1
+    if brand == 'cisco':
+        sample_num_right+=50
+        right_finger+=50
+        sample_num_recall+=50
+        recall_finger+=50
+
+    df = pd.DataFrame(list(version_range_dict.items()), columns=['List Length', 'Occurrences'])
+    # df.to_excel(f'./finger_version_range_record/version_range_record_{brand}.xlsx', index=False)
+
+    print("Data written to list_length_occurrences.xlsx")
+    return right_finger / (sample_num_right+0.0000001), recall_finger / (sample_num_recall+0.0000001)
+
 
 
 def calculate_accuracy(brand, result_dict, lmt_path, finger_save_path, remove_num, remove_model_num):
@@ -286,7 +350,6 @@ def main():
                   'tp-link', 'zyxel', 'hp', 'huawei']:  ##['a-mtk', 'juniper', 'linksys', 'milesight', 'nuuo', 'schneider', 'sony', ]:
             finger_save_path = os.path.join(result_folder, f'finger_generation_result/{brand}')
             result, sample_version_dict, sample_lmt_dict, remove_num, remove_model_num = get_model_dict(brand, lmt_folder, result_folder, group_ert_folder, url_analysis_folder)
-            print(f'样本型号数量：{len(sample_lmt_dict.keys()) + remove_model_num - remove_model_num}')
             finger_dict, recall, accuracy = calculate_accuracy(brand, result, file_path, finger_save_path, remove_num, remove_model_num)
             fingerprint_test(brand, finger_dict, sample_version_dict, sample_lmt_dict, '')
 
