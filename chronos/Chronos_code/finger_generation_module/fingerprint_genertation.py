@@ -67,7 +67,6 @@ def get_model_dict(brand_name, lmt_folder, result_folder, group_ert_folder, url_
     sample_lmt_dict = {}
 
     result_dict = {}
-    # 读取数据
     with open(f'{lmt_folder}/{brand_name}', 'r', encoding='utf-8') as f:
         group_data_dict = json.load(f)
     with open(f'{group_ert_folder}/{brand_name}', 'r', encoding='utf-8') as f:
@@ -92,7 +91,6 @@ def get_model_dict(brand_name, lmt_folder, result_folder, group_ert_folder, url_
                     # label_flag = single_sample["label_flag"]
                     # if label_flag != 'model':
             continue
-        # 取group_ert
         all_sample_count = 0
         ert_dict_group = group_ert_dict[group]
         # ert_list_group = list(group_ert_dict[group].keys())
@@ -105,7 +103,6 @@ def get_model_dict(brand_name, lmt_folder, result_folder, group_ert_folder, url_
                 for single_sample in sample:
                     unsuit_sample_num += 1
                 continue
-            # 取ERT_LIST
             match_dict = {}
             lmt_list = []
             ert_dict = samples["ERT_list"]
@@ -255,9 +252,7 @@ def calculate_accuracy(brand, result_dict, lmt_path, finger_save_path, remove_nu
             # if real_version == "NV":
             #     continue
             if match_info["match_result"] != []:
-                # 保存所有生成的指纹
                 finger_dict[model][lmt] = []
-                # 保存指纹
                 for item in match_info["match_result"]:
                     for version_ in item[1]:
                         append_flag = True
@@ -271,7 +266,6 @@ def calculate_accuracy(brand, result_dict, lmt_path, finger_save_path, remove_nu
                                     finger_dict[model][lmt][i] = version_["version"]
                                     append_flag = False
                                     break
-
                                 # if item_ in version_["version"]:
                                 #     append_flag = False
                                 #     finger_dict[model][lmt][i] = version_["version"]
@@ -297,27 +291,14 @@ def calculate_accuracy(brand, result_dict, lmt_path, finger_save_path, remove_nu
                             break
                     if not real_flag:
                         print(
-                            brand + "没有匹配到真实的结果,型号是：" + model + ",lmt是：" + lmt + "匹配结果是：" +
-                                str(match_info["match_result"]) + ", 真实版本是：" + real_version)
-                    # else:
-                    #     finger_dict[model][lmt] = []
-                    #     # 保存指纹
-                    #     for item in match_info["match_result"]:
-                    #         for version_ in item[1]:
-                    #             finger_dict[model][lmt].append(version_["version"])
+                            brand + model + lmt + str(match_info["match_result"]) + real_version)
 
-
-
-
-                    #     print(
-                    #         brand + "匹配到了真实的结果,型号是：" + model + ",lmt是：" + lmt + "匹配结果是：" +
-                    #         str(match_info["match_result"]) + ", 真实版本是：" + real_version)
             else:
-                print(brand + "没有匹配到真实的结果,型号是：" + model + ",lmt是：" + lmt + "匹配结果是：" + str(match_info["match_result"]) + ", 真实版本是：" + real_version)
-        match_count += model_match_count  # 匹配到的总数
-        match_count_with_version += version_match_count  # 有版本的匹配到的总数
-        accuracy += accuracy_count  # 匹配对的总数
-        sample_num += len(info["match_result"].keys())  # 样本总数
+                print(brand + model + lmt + str(match_info["match_result"]) + real_version)
+        match_count += model_match_count
+        match_count_with_version += version_match_count
+        accuracy += accuracy_count
+        sample_num += len(info["match_result"].keys())
 
         para_dict[model] = {"match_rate": [model_match_count, len(info["match_result"].keys()), model_match_count/(sample_num+0.000001)],
                             "accuracy_rate": [accuracy_count, version_match_count, accuracy_count/(version_match_count+0.000001)]}
@@ -326,23 +307,14 @@ def calculate_accuracy(brand, result_dict, lmt_path, finger_save_path, remove_nu
         match_count_with_version += 50
         accuracy += 50
         sample_num += 50
-    with open('F:\\paper\\paper_gu\\firmware_version_identification\\match_module\\match_result_restore\\有型号匹配结果_0112.txt', 'a+', encoding='utf-8') as g:
-        g.write(lmt_path + "有版本的LMT匹配到的有" + str(match_count_with_version) + "个，" + "匹配到真实的结果有" + str(accuracy) + "个结果，总共匹配了" + str(match_count) + "个结果，总共有" + str(
-        sample_num) + "个LMT" + "去掉了" + str(remove_num) + "个样本" + "\n" + "匹配率为：" + str(match_count / (sample_num + 0.00001 + remove_num)) + ", 正确率为：" + str(
-        accuracy / (match_count_with_version + 0.00001)))
-    print(brand + "有版本的LMT匹配到的有" + str(match_count_with_version) + "个，" + "匹配到真实的结果有" + str(accuracy) + "个结果，总共匹配了" + str(match_count) + "个结果，总共有" + str(
-        sample_num) + "个LMT，" + "去掉了" + str(remove_num) + "个样本" + "\n" + "匹配率为：" + str(match_count / (sample_num + 0.00001 + remove_num)) + ", 正确率为：" + str(
-        accuracy / (match_count_with_version + 0.00001)))
-    with open(finger_save_path, 'w', encoding='utf-8') as f:
-        f.write(json.dumps(finger_dict, indent=4, ensure_ascii=False))
     return finger_dict, str(match_count / (sample_num + 0.00001)), str(accuracy / (match_count_with_version + 0.00001))
 
 
 def main():
-    lmt_folder = f'./middle_data_restore/sample_for_url_analysis/grouped_lmt_sample/'
-    result_folder = f'./match_result_restore/model_match_result/'
-    group_ert_folder = f'./middle_data_restore/sample_for_url_analysis/grouped_ert_sample/'
-    url_analysis_folder = f'./match_result_restore/url_analysis_result/'
+    lmt_folder = f'sample_for_url_analysis/grouped_lmt_sample/'
+    result_folder = f'match_result_restore/model_match_result/'
+    group_ert_folder = f'sample_for_url_analysis/grouped_ert_sample/'
+    url_analysis_folder = f'match_result_restore/url_analysis_result/'
 
     for file_path in get_file_paths(lmt_folder):
         brand = os.path.basename(file_path)
