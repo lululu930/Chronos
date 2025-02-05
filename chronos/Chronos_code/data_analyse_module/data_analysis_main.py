@@ -1,2 +1,0 @@
-# for model clustering and LMT selecting
-
